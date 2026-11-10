@@ -1,338 +1,351 @@
-# Skin-Lesion-Segmentation-and-Classification-using-Deep-Learning
+# Skin Lesion Segmentation and Classification Using Deep Learning
 
-# Skin Cancer Detection and Classification Using Deep Learning
+A two-stage deep learning framework for skin-lesion analysis using dermoscopic images, combining **lesion segmentation and transfer-learning-based classification**.
 
-A research-oriented deep learning project focused on automated skin-lesion analysis using dermoscopic images. The project explores **lesion segmentation, region-of-interest (ROI) extraction, and binary classification** to investigate how isolating a lesion region can support skin cancer classification.
+**Research Internship:** National Institute of Technology Delhi (NIT Delhi)  
+**Duration:** 1 June – 26 June 2026  
+**Institution:** Manipal University Jaipur  
+**Supervisor:** Dr. Gautam Kumar, Assistant Professor, Department of CSE, NIT Delhi
 
-## Overview
+---
 
-Skin cancer is one of the major concerns in dermatology, and early identification of suspicious skin lesions is important. Dermoscopic images provide detailed visual information about skin lesions, but accurately identifying the lesion region and distinguishing between different diagnostic categories can be challenging.
+## 1. Project Overview
 
-This project investigates a computer vision pipeline that first identifies the lesion region through image segmentation and then uses the extracted region for classification.
+Skin cancer detection is an important research area because early identification of suspicious lesions can support timely medical evaluation.
 
-The work is divided into two main stages:
+This project explores a deep learning-based approach to skin-lesion analysis. It investigates whether focusing on the lesion region can provide useful information for classifying skin lesions.
 
-1. **Lesion Segmentation:** Identifying the skin-lesion region and separating it from the surrounding skin.
-2. **Lesion Classification:** Analysing the lesion-focused image to classify it into the defined diagnostic categories.
+The project follows two main stages:
 
-## Project Objectives
+1. **Segmentation:** Identify the lesion region from dermoscopic images.
+2. **Classification:** Use lesion-focused images to classify lesions into Nevus and Melanoma categories.
 
-- Develop a deep learning-based workflow for skin-lesion analysis.
-- Segment lesion regions from dermoscopic images.
-- Explore and compare different segmentation architectures and region-localisation techniques.
+The main research question was:
+
+> Can lesion-focused image classification provide useful results compared with ordinary image classification?
+
+The project investigates this question through segmentation and classification experiments. However, an unsegmented-image baseline was not conducted, so the improvement attributable to segmentation has not been established.
+
+## 2. Project Objectives
+
+- Segment skin lesions from dermoscopic images.
+- Compare six segmentation architectures.
 - Generate lesion-focused images using predicted segmentation masks.
-- Train deep learning classifiers for binary classification.
-- Evaluate segmentation and classification performance using appropriate metrics.
-- Investigate the role of lesion segmentation in improving classification.
+- Classify lesions into Nevus and Melanoma categories.
+- Evaluate segmentation and classification performance.
+- Investigate the use of segmentation masks in the classification workflow.
 
-## Datasets
+## 3. Datasets
 
-This project uses two datasets for different purposes.
+Two datasets were used for different stages of the project.
 
-### 1. ISIC 2018 – Task 1: Lesion Boundary Segmentation
+### A. ISIC 2018 – Task 1
 
-**Purpose:** Skin-lesion segmentation.
+**Purpose:** Lesion boundary segmentation.
 
-The ISIC 2018 Task 1 dataset provides dermoscopic images along with corresponding ground-truth segmentation masks.
+ISIC 2018 Task 1 provides dermoscopic RGB images and corresponding binary ground-truth lesion masks.
 
-- Input: Dermoscopic skin images.
-- Ground truth: Binary lesion masks.
-- Task: Pixel-level segmentation.
-- Objective: Identify the pixels belonging to the visible lesion region.
+| Dataset split | Number of images |
+|---|---:|
+| Training | 2,594 |
+| Validation | 100 |
+| Test | 1,000 |
 
-The dataset provides image-mask pairs that can be used to train and evaluate segmentation models.
+**Key characteristics:**
+- Dermoscopic RGB images.
+- Binary ground-truth segmentation masks.
+- Variation in lesion sizes, illumination and skin tones.
+- Used to train and evaluate lesion segmentation architectures.
 
 Dataset: [ISIC 2018 Challenge – Task 1](https://challenge.isic-archive.com/landing/2018/45/)
 
-### 2. HAM10000 – Human Against Machine with 10,000 Training Images
+### B. HAM10000
 
-**Purpose:** Skin-lesion classification.
+**Purpose:** Binary lesion classification.
 
-HAM10000 contains 10,015 dermoscopic images representing seven diagnostic categories.
+HAM10000 originally contains 10,015 dermoscopic images across seven diagnostic categories. This project uses a selected binary subset containing Nevus and Melanoma images.
 
-| Abbreviation | Diagnostic category |
-|---|---|
-| nv | Melanocytic nevi |
-| mel | Melanoma |
-| bkl | Benign keratosis-like lesions |
-| bcc | Basal cell carcinoma |
-| akiec | Actinic keratoses and intraepithelial carcinoma |
-| vasc | Vascular lesions |
-| df | Dermatofibroma |
+| Class | Label | Number of images |
+|---|---:|---:|
+| Nevus | 0 | 6,705 |
+| Melanoma | 1 | 1,113 |
+| **Total** | | **7,818** |
 
-The dataset includes diagnostic metadata, such as image identifiers, lesion identifiers, diagnosis, age, sex, and anatomical localisation.
+The selected subset focuses on distinguishing melanocytic nevi from melanoma.
 
-For this project, the classification task uses a binary-label setup. The mapping of the original diagnostic categories into the two target classes should be documented according to the project's implemented label mapping.
+**Dataset characteristics:**
+- Dermoscopic skin-lesion images.
+- Binary classification labels.
+- Imbalanced class distribution.
+- Used for training and evaluating transfer-learning-based classifiers.
 
 Dataset: [HAM10000 – Harvard Dataverse](https://doi.org/10.7910/DVN/DBW86T)
 
-### Why use two different datasets?
+### Why were two datasets used?
 
-The datasets serve complementary purposes:
+The datasets serve different purposes:
 
-- ISIC 2018 Task 1 provides ground-truth lesion masks, making it suitable for supervised segmentation.
-- HAM10000 provides diagnostic labels, making it suitable for classification.
+- ISIC 2018 Task 1 provides image-mask pairs for supervised lesion segmentation.
+- HAM10000 provides diagnostic labels for lesion classification.
 
-The segmentation dataset teaches the model **where the lesion is**, while the classification dataset provides information about **the diagnostic category of the lesion**.
+In simple terms, ISIC 2018 is used to identify **where the lesion is**, while HAM10000 is used to investigate **which diagnostic category the lesion belongs to**.
 
-## Proposed Methodology
+## 4. Proposed Methodology
 
-The overall workflow follows a segmentation-to-classification approach.
+The project follows two interconnected experimental workflows.
+
+### Stage 1: Skin Lesion Segmentation
+
+The first stage focuses on identifying lesion boundaries in dermoscopic images using ISIC 2018 Task 1.
+
+**Workflow:**
 
 ```text
-             Dermoscopic Images
-                      |
-                      v
-              Image Preprocessing
-                      |
-                      v
-             Lesion Segmentation
-                      |
-          +-----------+-----------+
-          |                       |
-          v                       v
-     U-Net / Other           Superpixel-Based
-     Segmentation            Localisation Methods
-          |                       |
-          +-----------+-----------+
-                      |
-                      v
-              Predicted Lesion Mask
-                      |
-                      v
-             Mask Processing and
-              Thresholding
-                      |
-                      v
-             ROI / Lesion-Focused
-                   Image
-                      |
-                      v
-              Image Preprocessing
-                      |
-                      v
-             Deep Learning-Based
-                Classification
-                      |
-                      v
-               Binary Prediction
+Dermoscopic Image
+       |
+       v
+Image Preprocessing
+(Resizing and Normalisation)
+       |
+       v
+Train Six Segmentation Models
+       |
+       v
+Predicted Binary Mask
+       |
+       v
+Evaluation Against Ground Truth
+       |
+       v
+Dice Coefficient and IoU
 ```
 
-### Stage 1: Image Preprocessing
+#### Segmentation Architectures
 
-The dermoscopic images are prepared before being passed to the segmentation models.
+Six segmentation architectures were compared:
 
-Typical preprocessing operations include:
+| Architecture | Main concept |
+|---|---|
+| U-Net | Encoder-decoder architecture with skip connections. |
+| U-Net++ | Nested dense skip connections to improve feature fusion. |
+| Attention U-Net | Attention gates in skip connections to emphasise relevant regions. |
+| ResUNet | Residual blocks for improved gradient flow and feature reuse. |
+| TransAttUNet | Transformer-style attention for local and global context. |
+| nnU-Net | Self-configuring framework that adapts preprocessing, architecture and training. |
 
-- Image resizing to a consistent input resolution.
-- Pixel-value normalisation.
-- Preparation of corresponding ground-truth masks.
-- Data augmentation where applicable.
+### Stage 2: Lesion-Focused Image Classification
 
-Image and mask transformations must remain spatially aligned.
+The second stage uses segmentation masks to isolate lesion regions before classification.
 
-### Stage 2: Lesion Segmentation
+Two classification workflows were explored:
 
-Segmentation models are used to predict the lesion boundary at the pixel level.
+**A. HAM10000 classification using U-Net masks**
 
-The project explores different segmentation approaches, including:
+```text
+HAM10000 Dermoscopic Image
+          |
+          v
+Resize to 256 × 256
+          |
+          v
+U-Net Predicted Mask
+          |
+          v
+Mask Thresholding
+          |
+          v
+Mask × Original Image
+          |
+          v
+Lesion-Focused Image
+          |
+          v
+CNN-Based Classification
+          |
+          v
+Nevus (0) / Melanoma (1)
+```
 
-- U-Net
-- Attention U-Net
-- UNet++
-- TransUNet
-- Swin-UNet
-- nnU-Net
+**B. ISIC 2018 classification using TransAttUNet masks**
 
-The implemented segmentation experiments also include superpixel-based methods such as:
+The predicted masks from TransAttUNet were used to generate lesion-focused images, which were then passed to the classification models.
 
-- Watershed
-- SLIC (Simple Linear Iterative Clustering)
-- SEEDS (Superpixels Extracted via Energy-Driven Sampling)
+#### Understanding Mask Processing
 
-These approaches provide different ways of identifying and localising the lesion region.
+The predicted segmentation mask is thresholded to obtain a binary representation of the lesion region.
 
-### Stage 3: Mask Processing and ROI Extraction
+The binary mask is multiplied element-wise with the original image:
 
-The predicted segmentation mask is processed to obtain the lesion region.
+\[
+I_{\text{ROI}} = I_{\text{original}} \times M_{\text{binary}}
+\]
 
-The workflow uses mask-based processing and thresholding to distinguish lesion pixels from background pixels.
+Where:
 
-The processed mask is then used to isolate the corresponding lesion region from the original dermoscopic image.
+- \(I_{\text{ROI}}\) = lesion-focused image.
+- \(I_{\text{original}}\) = original dermoscopic image.
+- \(M_{\text{binary}}\) = predicted binary lesion mask.
 
-This generates a **lesion-focused image**, which is subsequently used in the classification stage.
+This operation retains the pixels inside the predicted lesion region and suppresses pixels outside it.
 
-### Stage 4: Binary Classification
+## 5. Classification Architectures
 
-The lesion-focused images are passed to deep learning-based classification models.
+Transfer learning was used to train CNN-based classifiers with pretrained backbones.
 
-The classification experiments include:
+The following architectures were evaluated:
 
-- ConvNeXt-Tiny
-- DenseNet121
-- EfficientNetB0
+| Model | Main characteristic |
+|---|---|
+| DenseNet121 | Dense connectivity and feature reuse. |
+| MobileNetV2 | Lightweight architecture using depthwise separable convolutions. |
+| ResNet50 | Residual connections for effective feature learning. |
+| Inception | Parallel convolution operations for multi-scale feature extraction. |
+| ConvNeXt-Tiny | Modernised CNN architecture with larger convolution kernels. |
 
-The objective is to classify the input lesion image into the two target categories defined by the project's binary-label mapping.
+ConvNeXt-Tiny was evaluated on the ISIC 2018 classification workflow, while the other four classifiers were evaluated on both datasets.
 
-### Stage 5: Model Evaluation
+### Training Configuration
 
-The segmentation and classification stages are evaluated separately using task-appropriate metrics.
+| Parameter | Configuration |
+|---|---|
+| Input image size | 224 × 224 |
+| Optimizer | Adam |
+| Learning rate | 0.00001 (1e-5) |
+| Loss function | Binary Cross-Entropy |
+| Augmentation | Rotation, horizontal flip, vertical flip and zoom |
+| Evaluation metrics | Accuracy, AUC, Precision, Recall and F1-Score |
 
-## Evaluation Metrics
+## 6. Evaluation Metrics
 
 ### Segmentation Metrics
 
-| Metric | Purpose |
-|---|---|
-| Dice Coefficient | Measures the overlap between predicted and ground-truth masks. |
-| Intersection over Union (IoU) | Measures the intersection relative to the union of the two masks. |
+**Dice Coefficient**
 
-**Dice Coefficient:**
+Measures the overlap between the predicted mask and the ground-truth mask.
 
 \[
-Dice = \frac{2TP}{2TP+FP+FN}
+Dice = \frac{2|A\cap B|}{|A|+|B|}
 \]
 
-**Intersection over Union:**
+**Intersection over Union (IoU)**
+
+Measures the intersection of the predicted and ground-truth masks relative to their union.
 
 \[
-IoU = \frac{TP}{TP+FP+FN}
+IoU = \frac{|A\cap B|}{|A\cup B|}
 \]
+
+Both metrics range from 0 to 1, where 1 represents perfect overlap.
 
 ### Classification Metrics
 
-| Metric | Purpose |
-|---|---|
-| Accuracy | Measures the proportion of correctly classified samples. |
-| Precision | Measures how many predicted positive cases are actually positive. |
-| Recall / Sensitivity | Measures how many actual positive cases are correctly identified. |
-| F1-Score | Harmonic mean of precision and recall. |
-| Specificity | Measures how many actual negative cases are correctly identified. |
+- **Accuracy:** Proportion of correctly classified images.
+- **Precision:** Proportion of predicted positive cases that are actually positive.
+- **Recall:** Proportion of actual positive cases correctly identified.
+- **F1-Score:** Harmonic mean of precision and recall.
+- **AUC:** Measures the ability of the classifier to distinguish between the two classes across classification thresholds.
 
-These metrics provide a broader understanding of model performance, particularly when the dataset contains class imbalance.
+## 7. Experimental Results
 
-## Technologies and Libraries
+### A. Segmentation Results – ISIC 2018
 
-| Category | Tools / Technologies |
-|---|---|
-| Programming Language | Python |
-| Deep Learning | TensorFlow, Keras |
-| Image Processing | OpenCV, scikit-image |
-| Numerical Computing | NumPy |
-| Data Analysis | Pandas |
-| Machine Learning | scikit-learn |
-| Computer Vision | CNN-based architectures, segmentation models |
-| Development Environment | Google Colab / Jupyter Notebook |
+The following values are reported in the presentation's segmentation comparison table.
 
-## Key Areas of Exploration
+| Model | Validation Accuracy | Dice | IoU |
+|---|---:|---:|---:|
+| U-Net | 94.50% | 0.8492 | 0.7674 |
+| U-Net++ | 94.95% | 0.8815 | 0.7881 |
+| nnU-Net | 94.59% | 0.8720 | 0.7731 |
+| Attention U-Net | 94.36% | 0.8800 | 0.7660 |
+| TransAttUNet | 94.91% | 0.8810 | 0.7874 |
+| ResUNet | 95.36% | 0.8911 | 0.8036 |
 
-- Medical image preprocessing and segmentation.
-- CNN-based and Transformer-based segmentation architectures.
-- Attention mechanisms and feature extraction.
-- Superpixel-based image segmentation.
-- Mask thresholding and lesion ROI extraction.
-- Deep learning-based binary classification.
-- Evaluation of segmentation and classification models.
-- Analysis of class imbalance in medical image datasets.
+**Observation:** ResUNet achieved the highest Dice and IoU values in the reported comparison table.
 
-## Repository Structure
+*Note: The presentation also reports different ResUNet values in Figure 5.12 (approximately 0.9149 Dice and 0.8431 IoU). This discrepancy needs verification against the original experiment logs before treating either result as final.*
 
-The following is a suggested organisation. Update the folder and notebook names to match the files actually uploaded to this repository.
+### B. Classification Results – Segmented HAM10000
 
-```text
-Skin-Cancer-Detection/
-│
-├── datasets/
-│   ├── ISIC2018/
-│   └── HAM10000/
-│
-├── notebooks/
-│   ├── data_preprocessing.ipynb
-│   ├── lesion_segmentation.ipynb
-│   ├── superpixel_segmentation.ipynb
-│   ├── roi_extraction.ipynb
-│   └── lesion_classification.ipynb
-│
-├── models/
-│   ├── segmentation/
-│   └── classification/
-│
-├── results/
-│   ├── segmentation/
-│   └── classification/
-│
-├── README.md
-└── requirements.txt
-```
+The following results are reported for the HAM10000 classification workflow using U-Net masks.
 
-## Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
-cd YOUR_REPOSITORY
-```
-
-Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-If a requirements file is not provided, the principal libraries used in the project include:
-
-```bash
-pip install tensorflow opencv-python scikit-image scikit-learn numpy pandas matplotlib
-```
-
-Download the ISIC 2018 Task 1 and HAM10000 datasets from their official sources and configure the dataset paths in the notebooks.
-
-## Results
-
-This section should contain the final experimental results after verification.
-
-Recommended result tables:
-
-**Segmentation comparison**
-
-| Model | Dice Coefficient | IoU |
+| Model | Accuracy | Melanoma Recall |
 |---|---:|---:|
-| Attention U-Net | To be added | To be added |
-| nnU-Net | To be added | To be added |
-| Other evaluated approaches | To be added | To be added |
+| DenseNet121 | 0.85 | 0.90 |
+| MobileNetV2 | 0.83 | 0.86 |
+| ResNet50 | 0.76 | 0.76 |
+| Inception | 0.75 | 0.77 |
 
-**Classification comparison**
+**Observation:** DenseNet121 achieved the highest reported accuracy (0.85) and melanoma recall (0.90).
 
-| Model | Accuracy | Precision | Recall | F1-Score |
-|---|---:|---:|---:|---:|
-| ConvNeXt-Tiny | To be added | To be added | To be added | To be added |
-| DenseNet121 | To be added | To be added | To be added | To be added |
-| EfficientNetB0 | To be added | To be added | To be added | To be added |
+*Note: The Inception result was evaluated using a different, imbalanced test set and is not directly comparable to the other models.*
 
-Only include models and scores that were actually evaluated. Add a separate comparison of original-image and ROI-based classification only if that experiment was performed.
+### C. Classification Results – Segmented ISIC 2018
 
-## Limitations
+The following results are reported using TransAttUNet masks.
 
-- Dermoscopic image quality, lighting, and acquisition conditions can affect segmentation performance.
-- Skin lesions can have irregular boundaries, making accurate segmentation challenging.
-- Class imbalance can influence classification performance.
-- Dataset differences may affect model generalisation.
-- A segmentation or classification prediction is not equivalent to a clinical diagnosis.
+| Model | Accuracy | Melanoma Recall | Melanoma F1 |
+|---|---:|---:|---:|
+| DenseNet121 | 0.84 | 0.59 | 0.58 |
+| MobileNetV2 | 0.84 | 0.74 | 0.64 |
+| ResNet50 | 0.80 | 0.66 | 0.56 |
+| Inception | 0.78 | 0.77 | 0.57 |
+| ConvNeXt-Tiny | 0.81 | 0.02 | 0.03 |
 
-## Future Scope
+**Observation:**
+- DenseNet121 and MobileNetV2 achieved the highest reported accuracy of 0.84.
+- MobileNetV2 achieved a higher melanoma recall and melanoma F1-score than DenseNet121.
+- ConvNeXt-Tiny showed very poor melanoma detection despite its reported accuracy.
 
-- Evaluate the pipeline on larger and more diverse dermoscopic datasets.
-- Improve generalisation across different image acquisition conditions.
-- Explore explainable AI techniques to understand model predictions.
-- Investigate class-imbalance handling and class-wise performance.
-- Evaluate the effect of lesion ROI extraction on classification performance.
-- Explore external validation and clinical evaluation.
+## 8. Key Findings
 
-## Disclaimer
+- Six segmentation architectures were compared on ISIC 2018 Task 1.
+- ResUNet achieved the highest reported Dice and IoU in the main comparison table.
+- DenseNet121 achieved 0.85 accuracy on the segmented HAM10000 dataset.
+- On segmented ISIC 2018, DenseNet121 and MobileNetV2 achieved 0.84 accuracy.
+- Classification performance varied across architectures, particularly for melanoma recall.
+- The effect of segmentation on classification accuracy remains unverified because an unsegmented-image baseline was not conducted.
 
-This project is an academic research and learning exercise in medical image analysis. It is not a clinically validated diagnostic system and must not be used as a substitute for professional medical advice or dermatological diagnosis.
+## 9. Limitations
 
-## Acknowledgement
+- No unsegmented-image baseline was conducted to measure the direct effect of segmentation on classification.
+- The datasets have class imbalance, which can affect classification performance.
+- Some classifiers showed weak melanoma detection.
+- The Inception HAM10000 result used a different test set, limiting direct comparison.
+- The project does not include a deployed graphical user interface or computer-aided diagnostic application.
+- The models have not undergone clinical validation.
 
-This work was carried out as part of a research internship at **NIT Delhi**, focusing on skin-lesion segmentation and classification using deep learning.
+## 10. Future Scope
+
+- Explore advanced attention-based and Transformer-based segmentation architectures.
+- Evaluate models on larger and more diverse datasets covering different skin tones and image acquisition conditions.
+- Develop an integrated web or desktop application.
+- Investigate model compression and quantisation for resource-limited devices.
+- Explore Explainable AI techniques for understanding model predictions.
+- Conduct a controlled comparison between original-image and lesion-focused classification.
+- Validate the pipeline using clinically verified data.
+
+## 11. Technologies Used
+
+- **Programming:** Python
+- **Deep Learning:** TensorFlow, Keras
+- **Image Processing:** OpenCV, scikit-image
+- **Numerical Computing:** NumPy
+- **Data Analysis:** Pandas
+- **Machine Learning:** scikit-learn
+- **Environment:** Google Colab / Jupyter Notebook
+
+## 12. Disclaimer
+
+This project is an academic research internship project involving deep learning-based skin-lesion segmentation and classification. It is intended for research and educational purposes only. The model predictions are not clinically validated and must not be used as a substitute for professional medical diagnosis.
+
+## 13. Acknowledgements
+
+I would like to express my gratitude to **Dr. Gautam Kumar**, Assistant Professor, Department of Computer Science and Engineering, NIT Delhi, for his guidance and support during this research internship.
+
+I also acknowledge NIT Delhi and Manipal University Jaipur for providing the academic environment and opportunity to undertake this project.
+
+---
+
+**Project Title:** Skin Lesion Segmentation and Classification Using Deep Learning  
+**Research Internship:** National Institute of Technology Delhi  
+**Duration:** June 2026
